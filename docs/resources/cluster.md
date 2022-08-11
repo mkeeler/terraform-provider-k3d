@@ -15,9 +15,6 @@ K3D Cluster
 ```terraform
 resource "k3d_cluster" "cluster" {
   name = "foo"
-  expose_api = {
-    host_port = 1234
-  }
 }
 ```
 
@@ -31,18 +28,16 @@ resource "k3d_cluster" "cluster" {
 ### Optional
 
 - `agents` (Number) Number of agents to create
-- `expose_api` (Attributes) (see [below for nested schema](#nestedatt--expose_api))
 - `image` (String) Name of the K3s node image
+- `k8s_api_host` (String) The hostname to serve the Kubernetes APIs with
+- `k8s_api_host_ip` (String) The IP to bind the Kubernetes API
+- `k8s_api_host_port` (Number) The port to bind the Kubernetes API
 - `network` (String) Name of the network the K3s nodes get attached to. If unset, a new network will be created.
 - `servers` (Number) Number of servers to create
 
-<a id="nestedatt--expose_api"></a>
-### Nested Schema for `expose_api`
+### Read-Only
 
-Optional:
-
-- `host` (String) The hostname to serve the Kubernetes APIs with
-- `host_ip` (String) The IP to bind the Kubernetes API
-- `host_port` (Number) The port to bind the Kubernetes API
+- `id` (String) The ID of the cluster
+- `image_sha` (String) SHA of the docker image that was used
 
 
