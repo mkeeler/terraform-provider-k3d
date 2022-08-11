@@ -17,9 +17,9 @@ func TestAccK3DClusterResource(t *testing.T) {
 				Config: testAccK3DClusterResourceConfig("acc-test"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("k3d_cluster.test", "name", "acc-test"),
-					// resource.TestCheckResourceAttr("k3d_cluster.test", "servers", "1"),
-					// resource.TestCheckResourceAttr("k3d_cluster.test", "agents", "0"),
-					// resource.TestCheckResourceAttr("k3d_cluster.test", "network", "blah"),
+					resource.TestCheckResourceAttr("k3d_cluster.test", "servers", "1"),
+					resource.TestCheckResourceAttr("k3d_cluster.test", "agents", "0"),
+					resource.TestCheckResourceAttr("k3d_cluster.test", "network", "k3d-acc-test"),
 				),
 			},
 			// Delete testing automatically occurs in TestCase
