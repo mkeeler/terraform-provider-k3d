@@ -13,6 +13,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	provider "github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -26,8 +28,8 @@ import (
 )
 
 // Ensure provider defined types fully satisfy framework interfaces
-var _ tfsdk.ResourceType = k3dClusterType{}
-var _ tfsdk.Resource = k3dCluster{}
+var _ provider.ResourceType = k3dClusterType{}
+var _ resource.Resource = k3dCluster{}
 
 type k3dClusterType struct{}
 
@@ -42,7 +44,7 @@ func (t k3dClusterType) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagn
 				Required:            true,
 				Type:                types.StringType,
 				PlanModifiers: tfsdk.AttributePlanModifiers{
-					tfsdk.RequiresReplace(),
+					resource.RequiresReplace(),
 				},
 			},
 			"servers": {
@@ -51,7 +53,7 @@ func (t k3dClusterType) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagn
 				Computed:            true,
 				Type:                types.Int64Type,
 				PlanModifiers: tfsdk.AttributePlanModifiers{
-					tfsdk.RequiresReplace(),
+					resource.RequiresReplace(),
 					intDefaultModifier{Default: 1},
 				},
 			},
@@ -61,7 +63,7 @@ func (t k3dClusterType) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagn
 				Computed:            true,
 				Type:                types.Int64Type,
 				PlanModifiers: tfsdk.AttributePlanModifiers{
-					tfsdk.RequiresReplace(),
+					resource.RequiresReplace(),
 					intDefaultModifier{Default: 0},
 				},
 			},
@@ -70,8 +72,8 @@ func (t k3dClusterType) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagn
 				Optional:            true,
 				Type:                types.StringType,
 				PlanModifiers: tfsdk.AttributePlanModifiers{
-					tfsdk.UseStateForUnknown(),
-					tfsdk.RequiresReplace(),
+					resource.UseStateForUnknown(),
+					resource.RequiresReplace(),
 				},
 				Validators: []tfsdk.AttributeValidator{
 					// These are example validators from terraform-plugin-framework-validators
@@ -88,8 +90,8 @@ func (t k3dClusterType) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagn
 				Computed:            true,
 				Type:                types.StringType,
 				PlanModifiers: tfsdk.AttributePlanModifiers{
-					tfsdk.UseStateForUnknown(),
-					tfsdk.RequiresReplace(),
+					resource.UseStateForUnknown(),
+					resource.RequiresReplace(),
 					stringDefaultModifier{Default: "127.0.0.1"},
 				},
 				Validators: []tfsdk.AttributeValidator{
@@ -102,8 +104,8 @@ func (t k3dClusterType) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagn
 				Computed:            true,
 				Type:                types.Int64Type,
 				PlanModifiers: tfsdk.AttributePlanModifiers{
-					tfsdk.UseStateForUnknown(),
-					tfsdk.RequiresReplace(),
+					resource.UseStateForUnknown(),
+					resource.RequiresReplace(),
 					intDefaultModifier{Default: 6550},
 				},
 				Validators: []tfsdk.AttributeValidator{
@@ -116,8 +118,8 @@ func (t k3dClusterType) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagn
 				Computed:            true,
 				Type:                types.StringType,
 				PlanModifiers: tfsdk.AttributePlanModifiers{
-					tfsdk.UseStateForUnknown(),
-					tfsdk.RequiresReplace(),
+					resource.UseStateForUnknown(),
+					resource.RequiresReplace(),
 					stringDefaultModifier{Default: "latest"},
 				},
 			},
@@ -126,7 +128,7 @@ func (t k3dClusterType) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagn
 				Computed:            true,
 				Type:                types.StringType,
 				PlanModifiers: tfsdk.AttributePlanModifiers{
-					tfsdk.UseStateForUnknown(),
+					resource.UseStateForUnknown(),
 				},
 			},
 			"network": {
@@ -135,8 +137,8 @@ func (t k3dClusterType) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagn
 				Computed:            true,
 				Type:                types.StringType,
 				PlanModifiers: tfsdk.AttributePlanModifiers{
-					tfsdk.UseStateForUnknown(),
-					tfsdk.RequiresReplace(),
+					resource.UseStateForUnknown(),
+					resource.RequiresReplace(),
 				},
 			},
 			"id": {
@@ -148,7 +150,7 @@ func (t k3dClusterType) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagn
 	}, nil
 }
 
-func (t k3dClusterType) NewResource(ctx context.Context, in tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+func (t k3dClusterType) NewResource(ctx context.Context, in provider.Provider) (resource.Resource, diag.Diagnostics) {
 	provider, diags := convertProviderType(in)
 
 	return k3dCluster{
@@ -170,10 +172,10 @@ type k3dClusterData struct {
 }
 
 type k3dCluster struct {
-	provider provider
+	provider k3dProvider
 }
 
-func (r k3dCluster) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
+func (r k3dCluster) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data k3dClusterData
 
 	diags := req.Plan.Get(ctx, &data)
@@ -336,7 +338,7 @@ func (r k3dCluster) readCluster(ctx context.Context, data *k3dClusterData) diag.
 	return diagnostics
 }
 
-func (r k3dCluster) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
+func (r k3dCluster) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data k3dClusterData
 
 	diags := req.State.Get(ctx, &data)
@@ -355,12 +357,12 @@ func (r k3dCluster) Read(ctx context.Context, req tfsdk.ReadResourceRequest, res
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r k3dCluster) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
+func (r k3dCluster) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	resp.Diagnostics.Append(diag.NewErrorDiagnostic("Updates are unsupported", ""))
 	return
 }
 
-func (r k3dCluster) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
+func (r k3dCluster) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var data k3dClusterData
 
 	diags := req.State.Get(ctx, &data)
