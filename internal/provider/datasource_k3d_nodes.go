@@ -160,6 +160,12 @@ func (d k3dNodesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 
 	newNodes := make(map[string]k3dNode)
 	for _, node := range nodes {
+		// filter out nodes for other K3D clusters
+		cluster, ok := node.RuntimeLabels["k3d.cluster"]
+		if !ok || cluster != data.ClusterName.Value {
+			continue
+		}
+
 		var ports []k3dPort
 
 		for port, bindings := range node.Ports {

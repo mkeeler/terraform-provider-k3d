@@ -25,7 +25,6 @@ func TestAccK3dNodesDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr("data.k3d_nodes.test", "nodes.k3d-test-agent-0.role", "agent"),
 					resource.TestCheckResourceAttr("data.k3d_nodes.test", "nodes.k3d-test-serverlb.role", "loadbalancer"),
 					resource.TestCheckResourceAttrSet("data.k3d_nodes.test", "nodes.k3d-test-serverlb.ports.#"),
-					resource.TestCheckResourceAttr("data.k3d_nodes.test", "nodes.k3d-test-tools.name", "k3d-test-tools"),
 				),
 			},
 		},
