@@ -31,7 +31,9 @@ func (p *k3dProvider) GetResources(ctx context.Context) (map[string]provider.Res
 }
 
 func (p *k3dProvider) GetDataSources(ctx context.Context) (map[string]provider.DataSourceType, diag.Diagnostics) {
-	return nil, nil
+	return map[string]provider.DataSourceType{
+		"k3d_nodes": k3dNodesDataSourceType{},
+	}, nil
 }
 
 func (p *k3dProvider) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagnostics) {
