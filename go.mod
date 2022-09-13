@@ -4,9 +4,9 @@ go 1.18
 
 require (
 	github.com/hashicorp/terraform-plugin-docs v0.13.0
-	github.com/hashicorp/terraform-plugin-framework v0.11.0
+	github.com/hashicorp/terraform-plugin-framework v0.12.0
 	github.com/hashicorp/terraform-plugin-framework-validators v0.4.0
-	github.com/hashicorp/terraform-plugin-go v0.13.0
+	github.com/hashicorp/terraform-plugin-go v0.14.0
 	github.com/hashicorp/terraform-plugin-log v0.7.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.20.0
 	github.com/k3d-io/k3d/v5 v5.4.4
@@ -47,7 +47,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/goodhosts/hostsfile v0.1.1 // indirect
-	github.com/google/go-cmp v0.5.8 // indirect
+	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
