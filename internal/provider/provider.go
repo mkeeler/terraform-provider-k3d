@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	provider "github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 )
 
@@ -24,16 +26,21 @@ type k3dProvider struct {
 func (p *k3dProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
 }
 
-func (p *k3dProvider) GetResources(ctx context.Context) (map[string]provider.ResourceType, diag.Diagnostics) {
-	return map[string]provider.ResourceType{
-		"k3d_cluster": k3dClusterType{},
-	}, nil
+func (p *k3dProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "k3d"
+	resp.Version = p.version
 }
 
-func (p *k3dProvider) GetDataSources(ctx context.Context) (map[string]provider.DataSourceType, diag.Diagnostics) {
-	return map[string]provider.DataSourceType{
-		"k3d_nodes": k3dNodesDataSourceType{},
-	}, nil
+func (p *k3dProvider) DataSources(context.Context) []func() datasource.DataSource {
+	return []func() datasource.DataSource{
+		NewNodesDataSource,
+	}
+}
+
+func (p *k3dProvider) Resources(context.Context) []func() resource.Resource {
+	return []func() resource.Resource{
+		NewClusterResource,
+	}
 }
 
 func (p *k3dProvider) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagnostics) {

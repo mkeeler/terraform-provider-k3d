@@ -13,7 +13,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	provider "github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -28,12 +27,33 @@ import (
 )
 
 // Ensure provider defined types fully satisfy framework interfaces
-var _ provider.ResourceType = k3dClusterType{}
 var _ resource.Resource = k3dCluster{}
 
-type k3dClusterType struct{}
+func NewClusterResource() resource.Resource {
+	return k3dCluster{}
+}
 
-func (t k3dClusterType) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagnostics) {
+type k3dClusterData struct {
+	ID          types.String `tfsdk:"id"`
+	Name        types.String `tfsdk:"name"`
+	Servers     types.Int64  `tfsdk:"servers"`
+	Agents      types.Int64  `tfsdk:"agents"`
+	K8sHost     types.String `tfsdk:"k8s_api_host"`
+	K8sHostIP   types.String `tfsdk:"k8s_api_host_ip"`
+	K8sHostPort types.Int64  `tfsdk:"k8s_api_host_port"`
+	Image       types.String `tfsdk:"image"`
+	ImageSHA    types.String `tfsdk:"image_sha"`
+	Network     types.String `tfsdk:"network"`
+}
+
+type k3dCluster struct {
+}
+
+func (k3dCluster) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_cluster"
+}
+
+func (k3dCluster) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "K3D Cluster",
@@ -150,32 +170,7 @@ func (t k3dClusterType) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagn
 	}, nil
 }
 
-func (t k3dClusterType) NewResource(ctx context.Context, in provider.Provider) (resource.Resource, diag.Diagnostics) {
-	provider, diags := convertProviderType(in)
-
-	return k3dCluster{
-		provider: provider,
-	}, diags
-}
-
-type k3dClusterData struct {
-	ID          types.String `tfsdk:"id"`
-	Name        types.String `tfsdk:"name"`
-	Servers     types.Int64  `tfsdk:"servers"`
-	Agents      types.Int64  `tfsdk:"agents"`
-	K8sHost     types.String `tfsdk:"k8s_api_host"`
-	K8sHostIP   types.String `tfsdk:"k8s_api_host_ip"`
-	K8sHostPort types.Int64  `tfsdk:"k8s_api_host_port"`
-	Image       types.String `tfsdk:"image"`
-	ImageSHA    types.String `tfsdk:"image_sha"`
-	Network     types.String `tfsdk:"network"`
-}
-
-type k3dCluster struct {
-	provider k3dProvider
-}
-
-func (r k3dCluster) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (c k3dCluster) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data k3dClusterData
 
 	diags := req.Plan.Get(ctx, &data)
@@ -267,7 +262,7 @@ func (r k3dCluster) Create(ctx context.Context, req resource.CreateRequest, resp
 		resp.Diagnostics.Append(diag.NewWarningDiagnostic("Error writing kubeconfig", err.Error()))
 	}
 
-	resp.Diagnostics.Append(r.readCluster(ctx, &data)...)
+	resp.Diagnostics.Append(c.readCluster(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -276,7 +271,7 @@ func (r k3dCluster) Create(ctx context.Context, req resource.CreateRequest, resp
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r k3dCluster) readCluster(ctx context.Context, data *k3dClusterData) diag.Diagnostics {
+func (k3dCluster) readCluster(ctx context.Context, data *k3dClusterData) diag.Diagnostics {
 	var diagnostics diag.Diagnostics
 
 	tflog.Info(ctx, fmt.Sprintf("reading cluster: %s", data.Name.Value))
@@ -338,7 +333,7 @@ func (r k3dCluster) readCluster(ctx context.Context, data *k3dClusterData) diag.
 	return diagnostics
 }
 
-func (r k3dCluster) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (c k3dCluster) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var data k3dClusterData
 
 	diags := req.State.Get(ctx, &data)
@@ -348,7 +343,7 @@ func (r k3dCluster) Read(ctx context.Context, req resource.ReadRequest, resp *re
 		return
 	}
 
-	resp.Diagnostics.Append(r.readCluster(ctx, &data)...)
+	resp.Diagnostics.Append(c.readCluster(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
