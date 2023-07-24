@@ -1,6 +1,6 @@
 module github.com/mkeeler/terraform-provider-k3d
 
-go 1.18
+go 1.20
 
 require (
 	github.com/hashicorp/terraform-plugin-docs v0.13.0
