@@ -23,9 +23,12 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
-          go-version-file: "go.mod"
+          # needed until k3d gets updated to use docker/docker @ v24.0.5+ to account
+          # for Go 1.20.6 change that changed host header validation
+          go-version: "1.20.5"
+          #go-version-file: "go.mod"
           cache: true
       - run: go mod download
       - run: go build -v .
@@ -38,7 +41,7 @@ jobs:
         with:
           # needed until k3d gets updated to use docker/docker @ v24.0.5+ to account
           # for Go 1.20.6 change that changed host header validation
-          go-version: "^1.20.5"
+          go-version: "1.20.5"
           #go-version-file: "go.mod"
           cache: true
       - run: go generate ./...
