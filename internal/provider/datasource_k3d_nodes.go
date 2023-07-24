@@ -2,13 +2,13 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	client "github.com/k3d-io/k3d/v5/pkg/client"
@@ -65,9 +65,10 @@ func (d k3dNodesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
+	fmt.Println("Reading list of existing K3d nodes")
 	nodes, err := client.NodeList(ctx, runtimes.SelectedRuntime)
 	if err != nil {
-		resp.Diagnostics.Append(diag.NewErrorDiagnostic("Failed to lister K3d nodes", err.Error()))
+		resp.Diagnostics.Append(diag.NewErrorDiagnostic("Failed to list K3d nodes", err.Error()))
 		return
 	}
 
@@ -75,7 +76,7 @@ func (d k3dNodesDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	for _, node := range nodes {
 		// filter out nodes for other K3D clusters
 		cluster, ok := node.RuntimeLabels["k3d.cluster"]
-		if !ok || cluster != data.ClusterName.Value {
+		if !ok || cluster != data.ClusterName.ValueString() {
 			continue
 		}
 
@@ -120,80 +121,60 @@ func (t k3dNodesDataSource) Metadata(ctx context.Context, req datasource.Metadat
 	resp.TypeName = req.ProviderTypeName + "_nodes"
 }
 
-func (t k3dNodesDataSource) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
+func (t k3dNodesDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "K3d Cluster Node Listing Data Source",
-		Attributes: map[string]tfsdk.Attribute{
-			"cluster_name": {
+		Attributes: map[string]schema.Attribute{
+			"cluster_name": schema.StringAttribute{
 				MarkdownDescription: "Name of the K3D cluster for which to retrieve node information",
 				Required:            true,
-				Type:                types.StringType,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					resource.UseStateForUnknown(),
-				},
 			},
-			"id": {
+			"id": schema.StringAttribute{
 				MarkdownDescription: "Unique cluster identifier",
-				Type:                types.StringType,
 				Computed:            true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					resource.UseStateForUnknown(),
-				},
 			},
 
-			"nodes": {
+			"nodes": schema.MapNestedAttribute{
 				MarkdownDescription: "Map of node names to node information",
 				Computed:            true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					resource.UseStateForUnknown(),
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							MarkdownDescription: "The name of the nodes docker container",
+							Computed:            true,
+						},
+						"role": schema.StringAttribute{
+							MarkdownDescription: "The K3d cluster role of the node",
+							Computed:            true,
+						},
+						"ports": schema.SetAttribute{
+							MarkdownDescription: "Node port binding set",
+							Computed:            true,
+							ElementType:         portBindingType,
+						},
+						"runtime_labels": schema.MapAttribute{
+							MarkdownDescription: "A map of runtime labels to their values",
+							Computed:            true,
+							ElementType:         types.StringType,
+						},
+						"node_labels": schema.MapAttribute{
+							MarkdownDescription: "A map of K3s node labels to their values",
+							Computed:            true,
+							ElementType:         types.StringType,
+						},
+						"networks": schema.ListAttribute{
+							MarkdownDescription: "The list of docker networks to which the node is attached ",
+							Computed:            true,
+							ElementType:         types.StringType,
+						},
+						"ip": schema.StringAttribute{
+							MarkdownDescription: "The IP address of the node's container",
+							Computed:            true,
+						},
+					},
 				},
-				Attributes: tfsdk.MapNestedAttributes(map[string]tfsdk.Attribute{
-					"name": {
-						MarkdownDescription: "The name of the nodes docker container",
-						Computed:            true,
-						Type:                types.StringType,
-					},
-					"role": {
-						MarkdownDescription: "The K3d cluster role of the node",
-						Computed:            true,
-						Type:                types.StringType,
-					},
-					"ports": {
-						MarkdownDescription: "Node port binding set",
-						Computed:            true,
-						Type: types.SetType{
-							ElemType: portBindingType,
-						},
-					},
-					"runtime_labels": {
-						MarkdownDescription: "A map of runtime labels to their values",
-						Computed:            true,
-						Type: types.MapType{
-							ElemType: types.StringType,
-						},
-					},
-					"node_labels": {
-						MarkdownDescription: "A map of K3s node labels to their values",
-						Computed:            true,
-						Type: types.MapType{
-							ElemType: types.StringType,
-						},
-					},
-					"networks": {
-						MarkdownDescription: "The list of docker networks to which the node is attached ",
-						Computed:            true,
-						Type: types.ListType{
-							ElemType: types.StringType,
-						},
-					},
-					"ip": {
-						MarkdownDescription: "The IP address of the node's container",
-						Computed:            true,
-						Type:                types.StringType,
-					},
-				}),
 			},
 		},
-	}, nil
+	}
 }

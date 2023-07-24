@@ -6,8 +6,7 @@ import (
 	"net"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/helpers/validatordiag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 )
 
 var (
@@ -34,23 +33,18 @@ func (v *portValidator) MarkdownDescription(context.Context) string {
 }
 
 // Validate performs the validation.
-func (v *portValidator) Validate(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse) {
-	var i types.Int64
-	diags := tfsdk.ValueAs(ctx, req.AttributeConfig, &i)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
+func (v *portValidator) ValidateInt64(ctx context.Context, req validator.Int64Request, resp *validator.Int64Response) {
+	if req.ConfigValue.IsUnknown() || req.ConfigValue.IsNull() {
 		return
 	}
 
-	if i.IsUnknown() || i.IsNull() {
-		return
-	}
+	port := req.ConfigValue.ValueInt64()
 
-	if i.Value < 1 || i.Value > 65535 {
+	if port < 1 || port > 65535 {
 		resp.Diagnostics.Append(validatordiag.InvalidAttributeValueDiagnostic(
-			req.AttributePath,
+			req.Path,
 			v.Description(ctx),
-			fmt.Sprintf("%d", i.Value),
+			fmt.Sprintf("%d", port),
 		))
 
 		return
@@ -67,23 +61,18 @@ func (v *ipValidator) MarkdownDescription(context.Context) string {
 	return "A valid IPv4 address in dotted-quad notation"
 }
 
-func (v *ipValidator) Validate(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse) {
-	var ip types.String
-	diags := tfsdk.ValueAs(ctx, req.AttributeConfig, &ip)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
+func (v *ipValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsUnknown() || req.ConfigValue.IsNull() {
 		return
 	}
 
-	if ip.IsUnknown() || ip.IsNull() {
-		return
-	}
+	ip := req.ConfigValue.ValueString()
 
-	if net.ParseIP(ip.Value) == nil {
+	if net.ParseIP(ip) == nil {
 		resp.Diagnostics.Append(validatordiag.InvalidAttributeValueDiagnostic(
-			req.AttributePath,
+			req.Path,
 			v.Description(ctx),
-			ip.Value,
+			ip,
 		))
 
 		return

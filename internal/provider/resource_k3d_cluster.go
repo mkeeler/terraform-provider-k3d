@@ -14,13 +14,20 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	client "github.com/k3d-io/k3d/v5/pkg/client"
 	confutils "github.com/k3d-io/k3d/v5/pkg/config"
 	conftypes "github.com/k3d-io/k3d/v5/pkg/config/types"
-	config "github.com/k3d-io/k3d/v5/pkg/config/v1alpha4"
+	config "github.com/k3d-io/k3d/v5/pkg/config/v1alpha5"
 	"github.com/k3d-io/k3d/v5/pkg/runtimes"
 	k3dtypes "github.com/k3d-io/k3d/v5/pkg/types"
 	k3dutil "github.com/k3d-io/k3d/v5/pkg/util"
@@ -53,49 +60,45 @@ func (k3dCluster) Metadata(ctx context.Context, req resource.MetadataRequest, re
 	resp.TypeName = req.ProviderTypeName + "_cluster"
 }
 
-func (k3dCluster) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
+func (k3dCluster) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
 		MarkdownDescription: "K3D Cluster",
 
-		Attributes: map[string]tfsdk.Attribute{
-			"name": {
+		Attributes: map[string]schema.Attribute{
+			"name": schema.StringAttribute{
 				MarkdownDescription: "Name that you want to give to your cluster (will still be prefixed with `k3d-`)",
 				Required:            true,
-				Type:                types.StringType,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					resource.RequiresReplace(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"servers": {
+			"servers": schema.Int64Attribute{
 				MarkdownDescription: "Number of servers to create",
 				Optional:            true,
 				Computed:            true,
-				Type:                types.Int64Type,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					resource.RequiresReplace(),
-					intDefaultModifier{Default: 1},
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
 				},
+				Default: int64default.StaticInt64(1),
 			},
-			"agents": {
+			"agents": schema.Int64Attribute{
 				MarkdownDescription: "Number of agents to create",
 				Optional:            true,
 				Computed:            true,
-				Type:                types.Int64Type,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					resource.RequiresReplace(),
-					intDefaultModifier{Default: 0},
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
 				},
+				Default: int64default.StaticInt64(0),
 			},
-			"k8s_api_host": {
+			"k8s_api_host": schema.StringAttribute{
 				MarkdownDescription: "The hostname to serve the Kubernetes APIs with",
 				Optional:            true,
-				Type:                types.StringType,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					resource.UseStateForUnknown(),
-					resource.RequiresReplace(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
-				Validators: []tfsdk.AttributeValidator{
+				Validators: []validator.String{
 					// These are example validators from terraform-plugin-framework-validators
 					stringvalidator.LengthBetween(10, 256),
 					stringvalidator.RegexMatches(
@@ -104,70 +107,64 @@ func (k3dCluster) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagnostics
 					),
 				},
 			},
-			"k8s_api_host_ip": {
+			"k8s_api_host_ip": schema.StringAttribute{
 				MarkdownDescription: "The IP to bind the Kubernetes API",
 				Optional:            true,
 				Computed:            true,
-				Type:                types.StringType,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					resource.UseStateForUnknown(),
-					resource.RequiresReplace(),
-					stringDefaultModifier{Default: "127.0.0.1"},
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
-				Validators: []tfsdk.AttributeValidator{
+				Default: stringdefault.StaticString("127.0.0.1"),
+				Validators: []validator.String{
 					validateIP,
 				},
 			},
-			"k8s_api_host_port": {
+			"k8s_api_host_port": schema.Int64Attribute{
 				MarkdownDescription: "The port to bind the Kubernetes API",
 				Optional:            true,
 				Computed:            true,
-				Type:                types.Int64Type,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					resource.UseStateForUnknown(),
-					resource.RequiresReplace(),
-					intDefaultModifier{Default: 6550},
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+					int64planmodifier.RequiresReplace(),
 				},
-				Validators: []tfsdk.AttributeValidator{
+				Default: int64default.StaticInt64(6550),
+				Validators: []validator.Int64{
 					validatePort,
 				},
 			},
-			"image": {
+			"image": schema.StringAttribute{
 				MarkdownDescription: "Name of the K3s node image",
 				Optional:            true,
 				Computed:            true,
-				Type:                types.StringType,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					resource.UseStateForUnknown(),
-					resource.RequiresReplace(),
-					stringDefaultModifier{Default: "latest"},
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
+				Default: stringdefault.StaticString("latest"),
 			},
-			"image_sha": {
+			"image_sha": schema.StringAttribute{
 				MarkdownDescription: "SHA of the docker image that was used",
 				Computed:            true,
-				Type:                types.StringType,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					resource.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"network": {
+			"network": schema.StringAttribute{
 				MarkdownDescription: "Name of the network the K3s nodes get attached to. If unset, a new network will be created.",
 				Optional:            true,
 				Computed:            true,
-				Type:                types.StringType,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					resource.UseStateForUnknown(),
-					resource.RequiresReplace(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"id": {
+			"id": schema.StringAttribute{
 				MarkdownDescription: "The ID of the cluster",
 				Computed:            true,
-				Type:                types.StringType,
 			},
 		},
-	}, nil
+	}
 }
 
 func (c k3dCluster) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -180,19 +177,19 @@ func (c k3dCluster) Create(ctx context.Context, req resource.CreateRequest, resp
 		return
 	}
 
-	_, err := client.ClusterGet(ctx, runtimes.SelectedRuntime, &k3dtypes.Cluster{Name: data.Name.Value})
+	_, err := client.ClusterGet(ctx, runtimes.SelectedRuntime, &k3dtypes.Cluster{Name: data.Name.ValueString()})
 	if err == nil {
-		resp.Diagnostics.Append(diag.NewErrorDiagnostic("A cluster with the same name already exists", data.Name.Value))
+		resp.Diagnostics.Append(diag.NewErrorDiagnostic("A cluster with the same name already exists", data.Name.ValueString()))
 		return
 	}
 
 	tflog.Trace(ctx, "synthesizing configuration")
 	simpleConf := config.SimpleConfig{
-		Servers: int(data.Servers.Value),
-		Agents:  int(data.Agents.Value),
-		Image:   data.Image.Value,
+		Servers: int(data.Servers.ValueInt64()),
+		Agents:  int(data.Agents.ValueInt64()),
+		Image:   data.Image.ValueString(),
 		ObjectMeta: conftypes.ObjectMeta{
-			Name: data.Name.Value,
+			Name: data.Name.ValueString(),
 		},
 		Options: config.SimpleConfigOptions{
 			K3dOptions: config.SimpleConfigOptionsK3d{
@@ -203,15 +200,15 @@ func (c k3dCluster) Create(ctx context.Context, req resource.CreateRequest, resp
 	}
 
 	if !data.Network.IsNull() {
-		simpleConf.Network = data.Network.Value
+		simpleConf.Network = data.Network.ValueString()
 	}
 
 	if !data.K8sHost.IsNull() {
-		simpleConf.ExposeAPI.Host = data.K8sHost.Value
+		simpleConf.ExposeAPI.Host = data.K8sHost.ValueString()
 	}
 
 	if !data.K8sHostIP.IsNull() {
-		simpleConf.ExposeAPI.HostIP = data.K8sHostIP.Value
+		simpleConf.ExposeAPI.HostIP = data.K8sHostIP.ValueString()
 	}
 
 	if !data.K8sHostPort.IsNull() {
@@ -274,8 +271,8 @@ func (c k3dCluster) Create(ctx context.Context, req resource.CreateRequest, resp
 func (k3dCluster) readCluster(ctx context.Context, data *k3dClusterData) diag.Diagnostics {
 	var diagnostics diag.Diagnostics
 
-	tflog.Info(ctx, fmt.Sprintf("reading cluster: %s", data.Name.Value))
-	cluster, err := client.ClusterGet(ctx, runtimes.SelectedRuntime, &k3dtypes.Cluster{Name: data.Name.Value})
+	tflog.Info(ctx, fmt.Sprintf("reading cluster: %s", data.Name.ValueString()))
+	cluster, err := client.ClusterGet(ctx, runtimes.SelectedRuntime, &k3dtypes.Cluster{Name: data.Name.ValueString()})
 	if err != nil {
 		diagnostics.Append(diag.NewErrorDiagnostic("Error reading k3d cluster", err.Error()))
 		return diagnostics
@@ -310,23 +307,23 @@ func (k3dCluster) readCluster(ctx context.Context, data *k3dClusterData) diag.Di
 		diagnostics.Append(diag.NewWarningDiagnostic("Multiple node images found", buf.String()))
 	} else {
 		for image := range images {
-			data.ImageSHA = types.String{Value: image}
+			data.ImageSHA = types.StringValue(image)
 		}
 	}
 
-	data.Agents.Value = int64(agentCount)
-	data.Servers.Value = int64(serverCount)
-	data.Network = types.String{Value: cluster.Network.Name}
+	data.Agents = types.Int64Value(int64(agentCount))
+	data.Servers = types.Int64Value(int64(serverCount))
+	data.Network = types.StringValue(cluster.Network.Name)
 	data.ID = data.Name
 
 	if cluster.KubeAPI != nil {
-		data.K8sHost.Value = cluster.KubeAPI.Host
-		data.K8sHostIP.Value = cluster.KubeAPI.Binding.HostIP
-		port, err := strconv.ParseUint(cluster.KubeAPI.Binding.HostPort, 10, 16)
+		data.K8sHost = types.StringValue(cluster.KubeAPI.Host)
+		data.K8sHostIP = types.StringValue(cluster.KubeAPI.Binding.HostIP)
+		port, err := strconv.ParseInt(cluster.KubeAPI.Binding.HostPort, 10, 16)
 		if err != nil {
 			diagnostics.Append(diag.NewWarningDiagnostic("Invalid port found in cluster settings", cluster.KubeAPI.Binding.HostPort))
 		} else {
-			data.K8sHostPort.Value = int64(port)
+			data.K8sHostPort = types.Int64Value(port)
 		}
 	}
 
@@ -368,7 +365,7 @@ func (r k3dCluster) Delete(ctx context.Context, req resource.DeleteRequest, resp
 	}
 
 	tflog.Trace(ctx, "reading cluster info")
-	cluster, err := client.ClusterGet(ctx, runtimes.SelectedRuntime, &k3dtypes.Cluster{Name: data.Name.Value})
+	cluster, err := client.ClusterGet(ctx, runtimes.SelectedRuntime, &k3dtypes.Cluster{Name: data.Name.ValueString()})
 	if err != nil {
 		if errors.Is(err, client.ClusterGetNoNodesFoundError) {
 			return
