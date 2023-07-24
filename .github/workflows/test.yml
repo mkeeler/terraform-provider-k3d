@@ -34,9 +34,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
-          go-version-file: "go.mod"
+          # needed until k3d gets updated to use docker/docker @ v24.0.5+ to account
+          # for Go 1.20.6 change that changed host header validation
+          go-version: "^1.20.5"
+          #go-version-file: "go.mod"
           cache: true
       - run: go generate ./...
       - name: git diff
@@ -58,11 +61,17 @@ jobs:
           - "1.0.*"
           - "1.1.*"
           - "1.2.*"
+          - "1.3.*"
+          - "1.4.*"
+          - "1.5.*"
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
-          go-version-file: "go.mod"
+          # needed until k3d gets updated to use docker/docker @ v24.0.5+ to account
+          # for Go 1.20.6 change that changed host header validation
+          go-version: "^1.20.5"
+          #go-version-file: "go.mod"
           cache: true
       - uses: hashicorp/setup-terraform@v2
         with:
