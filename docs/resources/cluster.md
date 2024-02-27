@@ -39,5 +39,3 @@ resource "k3d_cluster" "cluster" {
 
 - `id` (String) The ID of the cluster
 - `image_sha` (String) SHA of the docker image that was used
-
-

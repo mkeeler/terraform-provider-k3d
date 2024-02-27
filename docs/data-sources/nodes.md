@@ -51,5 +51,3 @@ Read-Only:
 - `host_ip` (String)
 - `host_port` (Number)
 - `port` (Number)
-
-
